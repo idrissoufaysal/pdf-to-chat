@@ -195,8 +195,8 @@ useEffect(() => {
                             ))}
                         </Document>
                     ) : (
-                        <div className="flex items-center justify-center h-full text-muted-foreground p-8">
-                            <div className="text-center">
+                        <div className="flex items-center justify-center h-full p-8 bg-gradient-to-br from-white via-gray-100 to-gray-300">
+                            <div className="text-center text-muted-foreground">
                                 <p className="text-lg font-medium mb-2">Aucun document</p>
                                 <p className="text-sm">Veuillez uploader un PDF pour l&apos;afficher ici.</p>
                             </div>
