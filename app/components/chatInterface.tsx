@@ -37,7 +37,9 @@ export function ChatInterface({ fileId, onSourceClick }: ChatProps) {
     if (!input.trim() || !fileId) return;
 
     const userMessage: Message = { role: "user", content: input };
-    setMessages((prev) => [...prev, userMessage]);
+    const newMessages = [...messages, userMessage]; 
+
+    setMessages(newMessages);
     setInput("");
     setIsLoading(true);
 
@@ -45,7 +47,7 @@ export function ChatInterface({ fileId, onSourceClick }: ChatProps) {
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: input, fileId: fileId }),
+        body: JSON.stringify({ messages:newMessages, fileId: fileId }),
       });
       const data = await response.json();
 

@@ -3,17 +3,27 @@ import { NextResponse } from 'next/server';
 import { Pinecone } from '@pinecone-database/pinecone';
 import { GoogleGenerativeAIEmbeddings, ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { PineconeStore } from '@langchain/pinecone';
-import { ChatPromptTemplate } from "@langchain/core/prompts";
+import { ChatPromptTemplate, MessagesPlaceholder } from "@langchain/core/prompts";
 import { createStuffDocumentsChain } from "langchain/chains/combine_documents";
 import { createRetrievalChain } from "langchain/chains/retrieval";
+import { AIMessage, HumanMessage } from '@langchain/core/messages';
+import { createHistoryAwareRetriever } from "langchain/chains/history_aware_retriever";
+
 
 export async function POST(req: Request) {
   try {
-    const { question, fileId } = await req.json();
+    const { messages, fileId } = await req.json();
 
-    if (!question || !fileId) {
-      return NextResponse.json({ error: 'Question and fileId are required' }, { status: 400 });
+    if (!messages || messages.length === 0 || !fileId) {
+      return NextResponse.json({ error: 'Messages and fileId are required' }, { status: 400 });
     }
+
+     // La dernière question de l'utilisateur
+     const currentMessageContent = messages[messages.length - 1].content;
+     // L'historique des messages précédents
+     const history = messages.slice(0, -1).map((msg: { role: string, content: string }) => 
+       msg.role === 'user' ? new HumanMessage(msg.content) : new AIMessage(msg.content)
+     );
 
     // 1. Initialiser les clients
     const pinecone = new Pinecone({ apiKey: process.env.PINECONE_API_KEY! });
@@ -37,9 +47,25 @@ export async function POST(req: Request) {
     });
     const retriever = vectorStore.asRetriever();
 
-    // 3. Créer une chaîne pour répondre aux questions (RAG Chain)
-    const prompt = ChatPromptTemplate.fromTemplate(`
-      Vous êtes un assistant IA spécialisé dans l'analyse de documents et l'aide à l'utilisateur.
+
+       // 1. Chaîne pour reformuler la question de l'utilisateur en utilisant l'historique
+       const historyAwarePrompt = ChatPromptTemplate.fromMessages([
+        // Ici, on insère l'historique du chat
+        new MessagesPlaceholder("chat_history"),
+        ["user", "{input}"],
+        ["user", "Compte tenu de la conversation ci-dessus, génère une question de recherche autonome pour trouver des informations pertinentes pour la conversation."],
+      ]);
+  
+      const historyAwareRetrieverChain = await createHistoryAwareRetriever({
+        llm,
+        retriever,
+        rephrasePrompt: historyAwarePrompt,
+      });
+
+
+       // 2. Chaîne pour répondre à la question, en utilisant le contexte trouvé et l'historique
+    const answerPrompt = ChatPromptTemplate.fromMessages([
+      ["system", `Vous êtes un assistant IA spécialisé dans l'analyse de documents et l'aide à l'utilisateur.
       Vous pouvez répondre à des questions telles que : le nombre de pages du document, le résumé du document, ou toute autre question pertinente concernant le contenu.
       Si l'utilisateur vous salue (par exemple "bonjour", "salut", "hello", etc.), répondez poliment par une salutation adaptée, même si aucun contexte n'est fourni.
       Pour toute autre question, répondez uniquement en vous basant sur le contexte fourni ci-dessous. 
@@ -47,27 +73,24 @@ export async function POST(req: Request) {
       Soyez toujours clair, concis et professionnel.
 
       Contexte :
-      {context}
+      {context}`],
+      // On insère aussi l'historique ici pour que la réponse soit naturelle
+      new MessagesPlaceholder("chat_history"),
+      ["user", "{input}"],
+    ]);
 
-      Question :
-      {input}
-
-      Réponse :
-    `);
-
-    const combineDocsChain = await createStuffDocumentsChain({
-      llm,
-      prompt,
-    });
-    
+    const combineDocsChain = await createStuffDocumentsChain({ llm, prompt: answerPrompt });
+   
+    // 3. On combine le tout dans la chaîne finale
     const retrievalChain = await createRetrievalChain({
-      retriever,
+      retriever: historyAwareRetrieverChain, // On utilise notre nouveau retriever "intelligent"
       combineDocsChain,
     });
-
-    // 4. Invoquer la chaîne avec la question
-    const result = await retrievalChain.invoke({
-      input: question,
+    
+     // 4. Invoquer la chaîne avec l'historique et la nouvelle question
+     const result = await retrievalChain.invoke({
+      chat_history: history,
+      input: currentMessageContent,
     });
 
    // ---- AJOUT DE DÉBOGAGE ----
