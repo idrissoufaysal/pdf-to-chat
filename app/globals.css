@@ -110,3 +110,40 @@
     @apply bg-background text-foreground;
   }
 }
+
+
+/* Dans votre fichier src/app/globals.css */
+
+.highlight-pulse {
+  animation: pulse-bg 2s ease-out;
+}
+
+@keyframes pulse-bg {
+  0% {
+    background-color: transparent;
+  }
+  25% {
+    background-color: rgba(250, 204, 21, 0.4); /* Jaune semi-transparent */
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+@layer utilities {
+  .flash-animation {
+    animation: flash 1.5s ease-out;
+  }
+
+  @keyframes flash {
+    0% {
+      background-color: transparent;
+    }
+    25% {
+      background-color: rgba(253, 224, 71, 0.5); /* Jaune semi-transparent */
+    }
+    100% {
+      background-color: transparent;
+    }
+  }
+}

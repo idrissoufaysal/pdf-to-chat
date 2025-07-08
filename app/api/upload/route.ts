@@ -55,7 +55,7 @@ async function processFileUpload(req: Request, fileId: string, sendEvent: Functi
     // 2. Charger le PDF
     await sendEvent({ stage: 'Chargement du PDF...', progress: 20 });
     const pdfLoader = new PDFLoader(file, {
-        splitPages: false,
+        splitPages: true,
     });
     const docs = await pdfLoader.load();
 

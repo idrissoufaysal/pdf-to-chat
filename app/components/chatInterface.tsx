@@ -1,3 +1,4 @@
+/* eslint-disable react/no-unescaped-entities */
 // src/components/ChatInterface.tsx
 "use client";
 
@@ -18,9 +19,11 @@ interface Message {
 
 interface ChatProps {
   fileId: string | null;
+  onSourceClick: (pageNumber: number) => void;
+
 }
 
-export function ChatInterface({ fileId }: ChatProps) {
+export function ChatInterface({ fileId, onSourceClick }: ChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -92,26 +95,39 @@ export function ChatInterface({ fileId }: ChatProps) {
                     <AvatarFallback className="text-xs">IA</AvatarFallback>
                   </Avatar>
                 )}
-                <div className={`rounded-lg p-3 max-w-[85%] shadow-sm ${
-                  msg.role === 'user' 
-                    ? 'bg-primary text-primary-foreground' 
+                <div className={`rounded-lg p-3 max-w-[85%] shadow-sm ${msg.role === 'user'
+                    ? 'bg-primary text-primary-foreground'
                     : 'bg-muted text-foreground'
-                }`}>
+                  }`}>
                   <p className="text-sm leading-relaxed break-words">{msg.content}</p>
-                  {
-                  //source 
-                  // msg.sources && msg.sources.length > 0 && (
-                  //   <div className="mt-3 border-t pt-2">
-                  //     <p className="text-xs font-semibold mb-2 text-muted-foreground">Sources :</p>
-                  //     {msg.sources.slice(0, 2).map((source, i) => (
-                  //       <div key={i} className="text-xs bg-background/50 p-2 rounded border mb-1">
-                  //         <p className="line-clamp-2 text-muted-foreground">&quot;{source.content}&quot;</p>
-                  //       </div>
-                  //     ))}
-                  //   </div>
-                  // )
-                  
-                  }
+
+                  {msg.sources && msg.sources.length > 0 && (
+                    <div className="mt-3 border-t pt-2 space-y-2">
+                      <p className="text-xs font-semibold text-muted-foreground">Sources :</p>
+                      {msg.sources.slice(0, 3).map((source, i) => {
+                        // **Accès plus sûr aux données avec l'opérateur de chaînage optionnel (?.)**
+                        const pageNumber = source.metadata['loc.pageNumber']
+                        // **Utilise pageContent directement, avec une valeur par défaut**
+                        const content = source.pageContent || "Contenu non disponible";
+
+                        return (
+                          <button
+                            key={i}
+                            onClick={() => pageNumber && onSourceClick(pageNumber)}
+                            disabled={!pageNumber}
+                            className="w-full text-left text-xs bg-background/50 p-2 rounded border transition-colors hover:bg-muted/80 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <p className="line-clamp-2 text-muted-foreground font-medium">
+                              {/* Affiche le numéro de page s'il existe, sinon 'N/A' */}
+                              Page {pageNumber || 'N/A'}: "{content}"
+                            </p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+
                 </div>
                 {msg.role === 'user' && (
                   <Avatar className="flex-shrink-0 w-8 h-8">
@@ -130,8 +146,8 @@ export function ChatInterface({ fileId }: ChatProps) {
                 <div className="rounded-lg p-3 bg-muted">
                   <div className="flex space-x-1">
                     <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                    <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                    <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                    <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                   </div>
                 </div>
               </div>
@@ -150,13 +166,13 @@ export function ChatInterface({ fileId }: ChatProps) {
             disabled={!fileId || isLoading}
             className="flex-1 rounded-xl"
           />
-          <Button 
-            onClick={handleSendMessage} 
+          <Button
+            onClick={handleSendMessage}
             disabled={!fileId || isLoading || !input.trim()}
             size="icon"
             className="rounded-full"
           >
-            <ChevronRight color="white" size={50}/>
+            <ChevronRight color="white" size={50} />
           </Button>
         </div>
       </CardFooter>

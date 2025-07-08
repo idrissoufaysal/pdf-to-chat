@@ -22,6 +22,28 @@ export function PdfInteraction() {
     const [fileId, setFileId] = useState<string | null>(null); // Pour stocker l'ID du fichier traité
     const viewerRef = useRef<HTMLDivElement | null>(null);
 
+
+    const [pageToJump, setPageToJump] = useState<number | null>(null);
+
+// ---- AJOUT 2 : L'effet qui exécute le défilement ----
+useEffect(() => {
+    if (pageToJump && viewerRef.current) {
+        const pageElement = viewerRef.current.querySelector(`[data-page-number="${pageToJump}"]`);
+        if (pageElement) {
+            pageElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            
+            // Optionnel : ajouter un effet visuel de "flash"
+            pageElement.classList.add('flash-animation');
+            setTimeout(() => {
+                pageElement.classList.remove('flash-animation');
+            }, 1500);
+        }
+        // Réinitialiser pour pouvoir sauter à la même page une autre fois
+        setPageToJump(null); 
+    }
+}, [pageToJump]);
+
+
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = e.target.files?.[0];
         if (selectedFile) {
@@ -218,7 +240,7 @@ export function PdfInteraction() {
 
             {/* Colonne de droite : Chat */}
             <div className="flex flex-col h-full min-h-0">
-                <ChatInterface fileId={fileId} />
+                <ChatInterface fileId={fileId} onSourceClick={setPageToJump} />
             </div>
         </div>
     );

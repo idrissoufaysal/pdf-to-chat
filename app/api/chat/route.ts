@@ -70,10 +70,15 @@ export async function POST(req: Request) {
       input: question,
     });
 
+   // ---- AJOUT DE DÉBOGAGE ----
+console.log("Documents récupérés depuis Pinecone (contexte):", JSON.stringify(result.context, null, 2));
+// ----------------------------
+
+  
     // 5. Formater et renvoyer la réponse avec les sources
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sources = result.context.map((doc: any) => ({
-      content: doc.pageContent,
+      pageContent: doc.pageContent,
       metadata: doc.metadata,
     }));
 
